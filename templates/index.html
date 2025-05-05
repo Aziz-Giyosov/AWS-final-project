@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Global Getaways</title>
+    <link rel="stylesheet" href="static/style.css">
+    <link rel="stylesheet" href="static/custom.css"> </head>
+<body>
+    <header>
+        <h1>Explore the World's Wonders</h1>
+        <p class="tagline">Discover amazing travel destinations.</p>
+    </header>
+
+    <main class="content-area">
+        <section id="data-management">
+            <div class="add-item-section">
+                <h2>Suggest a New Destination</h2>
+                <form id="add-destination-form">
+                    <div class="form-group">
+                        <label for="city">City Name:</label>
+                        <input type="text" id="city" name="city" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="country">Nation:</label>
+                        <input type="text" id="country" name="country">
+                    </div>
+                    <div class="form-group">
+                        <label for="category">Type of Trip:</label>
+                        <input type="text" id="category" name="category">
+                    </div>
+                    <div class="form-group">
+                        <label for="best_time_to_travel">Ideal Visit Time:</label>
+                        <input type="text" id="best_time_to_travel" name="best_time_to_travel">
+                    </div>
+                    <button type="submit" class="submit-button">Suggest Getaway</button>
+                </form>
+            </div>
+
+            <div class="delete-item-section">
+                <h2>Remove a Destination</h2>
+                <form id="delete-destination-form">
+                    <div class="form-group">
+                        <label for="destination-to-delete">City to Remove:</label>
+                        <input type="text" id="destination-to-delete" name="destination_name" required>
+                    </div>
+                    <button type="submit" class="delete-button">Remove Getaway</button>
+                </form>
+            </div>
+        </section>
+
+        <section id="destination-list-area">
+            <h2>Featured Destinations</h2>
+            <div id="destination-list">
+                </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 Global Getaways</p>
+    </footer>
+
+    <script>
+        const ec2PublicIp = 'http://65.0.110.233:5000'; // Replace with your EC2 public IP
+
+        async function fetchDestinations() {
+            try {
+                const response = await fetch(`${ec2PublicIp}/destinations`);
+                if (!response.ok) {
+                    console.error('Error fetching destinations:', response.status, response.statusText);
+                    document.getElementById('destination-list').innerHTML = '<p class="error-message">Failed to load destinations.</p>';
+                    return;
+                }
+                const destinations = await response.json();
+                const destinationListDiv = document.getElementById('destination-list');
+                destinationListDiv.innerHTML = '';
+                const list = document.createElement('ul'); // Changed to an unordered list
+                destinations.forEach(destination => {
+                    const listItem = document.createElement('li');
+                    listItem.classList.add('destination-item'); // Added a class for styling
+                    listItem.innerHTML = `
+                        <h3>${destination.destination}</h3>
+                        <p><strong>Country:</strong> ${destination.country}</p>
+                        <p><strong>Category:</strong> ${destination.category}</p>
+                        <p><strong>Best Time:</strong> ${destination.best_time_to_travel}</p>
+                    `;
+                    list.appendChild(listItem);
+                });
+                destinationListDiv.appendChild(list);
+            } catch (error) {
+                console.error('Error fetching destination data:', error);
+                document.getElementById('destination-list').innerHTML = '<p class="error-message">Failed to load destinations.</p>';
+            }
+        }
+
+        async function addDestination(event) {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+            const destinationData = Object.fromEntries(formData.entries());
+            try {
+                const response = await fetch(`${ec2PublicIp}/destinations`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(destinationData),
+                });
+                if (response.ok) {
+                    fetchDestinations();
+                    event.target.reset();
+                } else {
+                    const errorData = await response.json();
+                    alert(`Failed to suggest getaway: ${errorData.message || 'Unknown error'}`);
+                }
+            } catch (error) {
+                console.error('Error adding destination:', error);
+                alert('Failed to suggest getaway');
+            }
+        }
+
+        async function deleteDestination(event) {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+            const destinationToDelete = formData.get('destination_name');
+            try {
+                const response = await fetch(`${ec2PublicIp}/destinations/${destinationToDelete}`, {
+                    method: 'DELETE',
+                });
+                if (response.ok) {
+                    fetchDestinations();
+                    event.target.reset();
+                } else {
+                    const errorData = await response.json();
+                    alert(`Failed to remove getaway: ${errorData.message || 'Unknown error'}`);
+                }
+            } catch (error) {
+                console.error('Error deleting destination:', error);
+                alert('Failed to remove getaway');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', fetchDestinations);
+        document.getElementById('add-destination-form').addEventListener('submit', addDestination);
+        document.getElementById('delete-destination-form').addEventListener('submit', deleteDestination);
+    </script>
+</body>
+</html>
